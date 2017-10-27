@@ -1,55 +1,40 @@
 import React from 'react'
 import '../../assets/stylesheets/application.css';
-import { Link } from 'react-router-dom'
-import { getWeb3, checkWeb3, setExistingContractParams } from '../../utils/blockchainHelpers'
+import { Link, Redirect } from 'react-router-dom'
+import { getWeb3, checkWeb3, setExistingContractParams, getNetworkVersion } from '../../utils/blockchainHelpers'
 import { stepTwo } from '../stepTwo'
 import { defaultCompanyStartDate } from './utils'
-import { getOldState, stepsAreValid, allFieldsAreValid, defaultCompanyEndDate } from '../../utils/utils'
+import { defaultCompanyEndDate } from '../../utils/utils'
 import { StepNavigation } from '../Common/StepNavigation'
 import { InputField } from '../Common/InputField'
 import { InputFieldExt } from '../Common/InputFieldExt'
 import { RadioInputField } from '../Common/RadioInputField'
 import { CrowdsaleBlock } from '../Common/CrowdsaleBlock'
 import { WhitelistInputBlock } from '../Common/WhitelistInputBlock'
-import { NAVIGATION_STEPS, VALIDATION_MESSAGES, VALIDATION_TYPES, TEXT_FIELDS, intitialStepThreeValidations, CONTRACT_TYPES } from '../../utils/constants'
+import { NAVIGATION_STEPS, VALIDATION_MESSAGES, VALIDATION_TYPES, TEXT_FIELDS, CONTRACT_TYPES } from '../../utils/constants'
 import { inject, observer } from 'mobx-react'
+import { noDeploymentOnMainnetAlert, warningOnMainnetAlert } from '../../utils/alerts'
 const { CROWDSALE_SETUP } = NAVIGATION_STEPS
 const { EMPTY, VALID, INVALID } = VALIDATION_TYPES
 const { START_TIME, END_TIME, MINCAP, RATE, SUPPLY, WALLET_ADDRESS, CROWDSALE_SETUP_NAME, ALLOWMODIFYING, DISABLEWHITELISTING } = TEXT_FIELDS
-//stores to get
-  //contracts
-  //crowdsale
-  //validations
-  //pricing strategy
-  //crowdsaleBlockListStore
-  //web3,
-	//tierCrowdsaleListStore
+
 @inject('contractStore', 'crowdsaleBlockListStore', 'pricingStrategyStore', 'web3Store', 'tierStore') @observer
 export class stepThree extends React.Component{
   constructor(props) {
     super(props);
     const { contractStore, crowdsaleBlockListStore, tierStore } = props
     window.scrollTo(0, 0);
-    // const oldState = getOldState(props, defaultState)
     if (contractStore.crowdsale.addr.length > 0) {
       contractStore.setContractProperty('pricingStrategy','addr',[]);
       setExistingContractParams(contractStore.abi, contractStore.addr[0], contractStore.setContractProperty);
     }
-    // oldState.children = [];
     crowdsaleBlockListStore.emptyList()
     tierStore.setTierProperty("Tier 1", 'name', 0)
-    // oldState.crowdsale[0].tier = "Tier 1"
     tierStore.setTierProperty( "off", 'updatable', 0)
-    // oldState.crowdsale[0].updatable = "off"
     tierStore.setTierProperty( "yes", 'whitelistdisabled', 0)
-    // oldState.crowdsale[0].whitelistdisabled = "yes"
-    //this.state = Object.assign({}, oldState, {validations: { ...oldState.validations, startTime: VALID, endTime: VALID, walletAddress: VALID, supply: EMPTY, rate: EMPTY } } )
-    // this.state = Object.assign({}, oldState, intitialStepThreeValidations )
-    //console.log('this.state', this.state)
   }
 
   addCrowdsale() {
-    // let newState = {...this.state}
     const { crowdsaleBlockListStore, tierStore } = this.props
     let num = crowdsaleBlockListStore.blockList.length + 1;
     const newTier = {
@@ -97,6 +82,14 @@ export class stepThree extends React.Component{
     pricingStrategyStore.setStrategyProperty(value, property, index);
   }
 
+  gotoDeploymentStage() {
+    console.log("###gotoDeploymentStage###");
+    let state = this.state;
+    state.redirect = true;
+    console.log(state);
+    this.setState(state);
+  }
+
   addCrowdsaleBlock(num) {
     this.props.crowdsaleBlockListStore.addCrowdsaleItem(
       <CrowdsaleBlock num = {num}/>
@@ -126,15 +119,12 @@ export class stepThree extends React.Component{
       console.log('steeeeeep 33333')
       return this.renderStandardLink()
     }
-    console.log('not valid')
-    return <div onClick={() => this.showErrorMessages('crowdsale')} className="button button_fill"> Continue</div>
-  }
 
-  renderLink () {
     console.log('render link four')
     return <div>
     <div onClick={() => this.addCrowdsale()} className="button button_fill_secondary"> Add Tier</div>
-    <Link to={{ pathname: '/4', query: { state: this.state, changeState: this.changeState } }}><a className="button button_fill">Continue</a></Link>
+    <div onClick={() => warningOnMainnetAlert(this.state.crowdsale.length, () => this.gotoDeploymentStage())} className="button button_fill"> Continue</div>
+    {/*<Link to={{ pathname: '/4', query: { state: this.state, changeState: this.changeState } }}><a className="button button_fill">Continue</a></Link>*/}
     </div>
   }
 
@@ -144,6 +134,7 @@ export class stepThree extends React.Component{
       // console.log('step 3 is valididididididididididididididididi')
       return this.renderLink()
     }
+
     console.log('not valid')
     return <div>
       <div onClick={() => this.addCrowdsale()} className="button button_fill_secondary"> Add Tier</div>
@@ -374,6 +365,5 @@ export class stepThree extends React.Component{
           </div>
         </section>
       )
-    }
   }
 }
